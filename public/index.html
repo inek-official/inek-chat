@@ -2,225 +2,87 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>INEK - I Net Engage Keep</title>
-  <!-- <link rel="icon" type="image/png" href="favicon.png"> -->
+  <title>INEK - Supabase Chat</title>
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      padding-top: 50px;
-      background: #fff5fb;
-      color: #444;
-    }
-
-    h1 {
-      font-size: 4.0rem;
-      color: #ff7ab8;
-      margin-bottom: 10px;
-    }
-
-    p {
-      font-size: 1.1rem;
-      margin-bottom: 40px;
-    }
-
-    .form-container {
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(255, 122, 184, 0.15);
-      width: 80%;
-      max-width: 320px;
-      margin: 0 auto;
-    }
-
-    .input-field {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 15px;
-      border: 1px solid #ffb3d9;
-      border-radius: 8px;
-      box-sizing: border-box;
-      font-size: 1rem;
-    }
-
-    .btn {
-      display: block;
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: none;
-      font-size: 1.1rem;
-      cursor: pointer;
-      margin-bottom: 10px;
-    }
-
-    .login-btn {
-      background: #ff9ecb;
-      color: white;
-      font-weight: bold;
-    }
-
-    .register-btn {
-      background: white;
-      border: 2px solid #ff9ecb;
-      color: #ff7ab8;
-    }
-
-    .chat {
-      background: linear-gradient(135deg, #ffb3d9, #ff7ab8);
-      color: white;
-      font-weight: bold;
-      width: 80%;
-      max-width: 320px;
-      margin: 20px auto;
-      box-shadow: 0 4px 10px rgba(255, 122, 184, 0.3);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-      display: none;
-    }
-
-    .logout-btn {
-      background: white;
-      border: 2px solid #ccc;
-      color: #666;
-      width: 80%;
-      max-width: 320px;
-      margin: 10px auto;
-      display: none;
-    }
-
-    #status {
-      margin-top: 20px;
-      font-size: 1rem;
-      color: #ff7ab8;
-      font-weight: bold;
-    }
-    
-    .error-msg {
-      color: red;
-      font-size: 0.9rem;
-      margin-bottom: 10px;
-    }
+    body { font-family: sans-serif; text-align: center; padding-top: 50px; background: #fff5fb; color: #444; }
+    h1 { font-size: 4.0rem; color: #ff7ab8; margin-bottom: 10px; }
+    .form-container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(255, 122, 184, 0.15); width: 80%; max-width: 320px; margin: 0 auto; }
+    .input-field { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ffb3d9; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+    .btn { display: block; width: 100%; padding: 12px; border-radius: 10px; border: none; font-size: 1.1rem; cursor: pointer; margin-bottom: 10px; }
+    .login-btn { background: #ff9ecb; color: white; font-weight: bold; }
+    .register-btn { background: white; border: 2px solid #ff9ecb; color: #ff7ab8; }
+    #status { margin-top: 20px; font-size: 1rem; color: #ff7ab8; font-weight: bold; }
+    .error-msg { color: red; font-size: 0.9rem; margin-bottom: 10px; }
   </style>
 </head>
 <body>
-
   <h1>INEK</h1>
-  <p>つながる、関わる、続ける。</p>
+  <p>つながる、関わる、続ける。(Supabase版)</p>
 
   <div id="auth-section" class="form-container">
     <div id="error-message" class="error-msg"></div>
-    <input type="text" id="userId" class="input-field" placeholder="ユーザーID (英数字)">
-    <input type="text" id="displayName" class="input-field" placeholder="表示名 (新規登録時のみ)">
-    <input type="password" id="password" class="input-field" placeholder="パスワード">
-    
-    <button class="btn login-btn" onclick="login()">ログイン</button>
-    <button class="btn register-btn" onclick="register()">新規登録</button>
+    <input type="text" id="userId" class="input-field" placeholder="ユーザーID (重複不可)">
+    <input type="text" id="displayName" class="input-field" placeholder="表示名 (登録時のみ)">
+    <input type="password" id="password" class="input-field" placeholder="パスワード(6文字以上)">
+    <button class="btn login-btn" onclick="handleLogin()">ログイン</button>
+    <button class="btn register-btn" onclick="handleRegister()">新規登録</button>
   </div>
 
   <div id="status"></div>
-  
-  <button id="chat-btn" class="btn chat" onclick="goChat()">チャットページへ</button>
-  <button id="logout-btn" class="btn logout-btn" onclick="logout()">ログアウト</button>
+  <button id="chat-btn" class="btn" style="background:#ff9ecb; color:white; width:200px; margin:20px auto; display:none;" onclick="location.href='chat2.html'">チャットへ</button>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // --- UI Update Helper ---
-    function updateUI() {
-      const user = JSON.parse(sessionStorage.getItem('user'));
-      const authSection = document.getElementById('auth-section');
-      const chatBtn = document.getElementById('chat-btn');
-      const logoutBtn = document.getElementById('logout-btn');
-      const statusEl = document.getElementById('status');
-      
-      if (user) {
-        authSection.style.display = 'none';
-        chatBtn.style.display = 'block';
-        logoutBtn.style.display = 'block';
-        statusEl.textContent = `${user.displayName} (${user.userId}) でログイン中`;
-      } else {
-        authSection.style.display = 'block';
-        chatBtn.style.display = 'none';
-        logoutBtn.style.display = 'none';
-        statusEl.textContent = '';
-      }
-    }
+    const SUPABASE_URL = 'https://kcxbtrsplrpxdxhnrglu.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGJ0cnNwbHJweGR4aG5yZ2x1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTA4ODQsImV4cCI6MjA4ODM2Njg4NH0.AxYrzEXZihd7FuTnXBu8ddjW4AXch0mMyPpcFRjTTM4';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // --- Actions ---
-    async function login() {
-      const userId = document.getElementById('userId').value.trim();
+    async function handleRegister() {
+      const username = document.getElementById('userId').value.trim();
       const password = document.getElementById('password').value;
-      const errorEl = document.getElementById('error-message');
-      
-      if(!userId || !password) {
-          errorEl.textContent = "IDとパスワードを入力してください";
-          return;
-      }
-
-      try {
-        const res = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, password })
-        });
-        
-        const data = await res.json();
-        if (data.success) {
-          sessionStorage.setItem('user', JSON.stringify(data.user));
-          errorEl.textContent = "";
-          updateUI();
-        } else {
-          errorEl.textContent = data.error || 'ログインに失敗しました';
-        }
-      } catch(err) {
-        errorEl.textContent = "通信エラーが発生しました";
-      }
-    }
-
-    async function register() {
-      const userId = document.getElementById('userId').value.trim();
-      const password = document.getElementById('password').value;
-      const displayName = document.getElementById('displayName').value.trim();
+      const display_name = document.getElementById('displayName').value.trim();
       const errorEl = document.getElementById('error-message');
 
-      if(!userId || !password) {
-          errorEl.textContent = "IDとパスワードを入力してください";
-          return;
+      // 1. Supabase Authで登録 (emailはダミーで作ります)
+      const { data, error } = await supabase.auth.signUp({
+        email: `${username}@inek.local`,
+        password: password
+      });
+
+      if (error) return errorEl.textContent = "登録エラー: " + error.message;
+
+      // 2. Profileテーブルへユーザー情報を保存
+      const { error: pError } = await supabase.from('profiles').insert([
+        { id: data.user.id, username: username, display_name: display_name || username }
+      ]);
+
+      if (pError) return errorEl.textContent = "プロフィール作成エラー: " + pError.message;
+      
+      alert("登録完了！ログインしてください。");
+    }
+
+    async function handleLogin() {
+      const username = document.getElementById('userId').value.trim();
+      const password = document.getElementById('password').value;
+      const errorEl = document.getElementById('error-message');
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: `${username}@inek.local`,
+        password: password
+      });
+
+      if (error) return errorEl.textContent = "ログインエラー: " + error.message;
+      
+      location.href = 'chat2.html';
+    }
+
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        document.getElementById('auth-section').style.display = 'none';
+        document.getElementById('chat-btn').style.display = 'block';
+        document.getElementById('status').textContent = "ログイン中";
       }
-
-      try {
-        const res = await fetch('/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, password, displayName })
-        });
-        
-        const data = await res.json();
-        if (data.success) {
-          sessionStorage.setItem('user', JSON.stringify(data.user));
-          errorEl.textContent = "";
-          updateUI();
-        } else {
-          errorEl.textContent = data.error || '登録に失敗しました';
-        }
-      } catch(err) {
-        errorEl.textContent = "通信エラーが発生しました";
-      }
-    }
-
-    function logout() {
-      sessionStorage.removeItem('user');
-      document.getElementById('userId').value = '';
-      document.getElementById('password').value = '';
-      updateUI();
-    }
-
-    function goChat() {
-      window.location.href = "chat2.html";
-    }
-
-    // Initial check
-    window.onload = updateUI;
+    });
   </script>
-
 </body>
 </html>
