@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>INEK - I Net Engage Keep</title>
+  <!-- <link rel="icon" type="image/png" href="favicon.png"> -->
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding-top: 50px;
+      background: #fff5fb;
+      color: #444;
+    }
+
+    h1 {
+      font-size: 4.0rem;
+      color: #ff7ab8;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 1.1rem;
+      margin-bottom: 40px;
+    }
+
+    .form-container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(255, 122, 184, 0.15);
+      width: 80%;
+      max-width: 320px;
+      margin: 0 auto;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ffb3d9;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 1rem;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1.1rem;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    .login-btn {
+      background: #ff9ecb;
+      color: white;
+      font-weight: bold;
+    }
+
+    .register-btn {
+      background: white;
+      border: 2px solid #ff9ecb;
+      color: #ff7ab8;
+    }
+
+    .chat {
+      background: linear-gradient(135deg, #ffb3d9, #ff7ab8);
+      color: white;
+      font-weight: bold;
+      width: 80%;
+      max-width: 320px;
+      margin: 20px auto;
+      box-shadow: 0 4px 10px rgba(255, 122, 184, 0.3);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      display: none;
+    }
+
+    .logout-btn {
+      background: white;
+      border: 2px solid #ccc;
+      color: #666;
+      width: 80%;
+      max-width: 320px;
+      margin: 10px auto;
+      display: none;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-size: 1rem;
+      color: #ff7ab8;
+      font-weight: bold;
+    }
+    
+    .error-msg {
+      color: red;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>INEK</h1>
+  <p>つながる、関わる、続ける。</p>
+
+  <div id="auth-section" class="form-container">
+    <div id="error-message" class="error-msg"></div>
+    <input type="text" id="userId" class="input-field" placeholder="ユーザーID (英数字)">
+    <input type="text" id="displayName" class="input-field" placeholder="表示名 (新規登録時のみ)">
+    <input type="password" id="password" class="input-field" placeholder="パスワード">
+    
+    <button class="btn login-btn" onclick="login()">ログイン</button>
+    <button class="btn register-btn" onclick="register()">新規登録</button>
+  </div>
+
+  <div id="status"></div>
+  
+  <button id="chat-btn" class="btn chat" onclick="goChat()">チャットページへ</button>
+  <button id="logout-btn" class="btn logout-btn" onclick="logout()">ログアウト</button>
+
+  <script>
+    // --- UI Update Helper ---
+    function updateUI() {
+      const user = JSON.parse(sessionStorage.getItem('user'));
+      const authSection = document.getElementById('auth-section');
+      const chatBtn = document.getElementById('chat-btn');
+      const logoutBtn = document.getElementById('logout-btn');
+      const statusEl = document.getElementById('status');
+      
+      if (user) {
+        authSection.style.display = 'none';
+        chatBtn.style.display = 'block';
+        logoutBtn.style.display = 'block';
+        statusEl.textContent = `${user.displayName} (${user.userId}) でログイン中`;
+      } else {
+        authSection.style.display = 'block';
+        chatBtn.style.display = 'none';
+        logoutBtn.style.display = 'none';
+        statusEl.textContent = '';
+      }
+    }
+
+    // --- Actions ---
+    async function login() {
+      const userId = document.getElementById('userId').value.trim();
+      const password = document.getElementById('password').value;
+      const errorEl = document.getElementById('error-message');
+      
+      if(!userId || !password) {
+          errorEl.textContent = "IDとパスワードを入力してください";
+          return;
+      }
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, password })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          sessionStorage.setItem('user', JSON.stringify(data.user));
+          errorEl.textContent = "";
+          updateUI();
+        } else {
+          errorEl.textContent = data.error || 'ログインに失敗しました';
+        }
+      } catch(err) {
+        errorEl.textContent = "通信エラーが発生しました";
+      }
+    }
+
+    async function register() {
+      const userId = document.getElementById('userId').value.trim();
+      const password = document.getElementById('password').value;
+      const displayName = document.getElementById('displayName').value.trim();
+      const errorEl = document.getElementById('error-message');
+
+      if(!userId || !password) {
+          errorEl.textContent = "IDとパスワードを入力してください";
+          return;
+      }
+
+      try {
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, password, displayName })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          sessionStorage.setItem('user', JSON.stringify(data.user));
+          errorEl.textContent = "";
+          updateUI();
+        } else {
+          errorEl.textContent = data.error || '登録に失敗しました';
+        }
+      } catch(err) {
+        errorEl.textContent = "通信エラーが発生しました";
+      }
+    }
+
+    function logout() {
+      sessionStorage.removeItem('user');
+      document.getElementById('userId').value = '';
+      document.getElementById('password').value = '';
+      updateUI();
+    }
+
+    function goChat() {
+      window.location.href = "chat2.html";
+    }
+
+    // Initial check
+    window.onload = updateUI;
+  </script>
+
+</body>
+</html>
