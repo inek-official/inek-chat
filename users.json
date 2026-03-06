@@ -1,0 +1,18 @@
+{
+  "keni____": {
+    "userId": "keni____",
+    "password": "keni@771221",
+    "displayName": "keni____",
+    "friends": {
+      "ohinsay": true
+    }
+  },
+  "ohinsay": {
+    "userId": "ohinsay",
+    "password": "ohinsay",
+    "displayName": "ohinsay",
+    "friends": {
+      "keni____": true
+    }
+  }
+}
