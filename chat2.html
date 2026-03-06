@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>INEK - Chat</title>
+    <!-- <link rel="icon" href="favicon.png"> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, sans-serif;
+            background: #fff5fb;
+            color: #444;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            height: 56px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            background: #ff9ecb;
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        }
+
+        header .back {
+            border: none;
+            background: transparent;
+            color: #fff;
+            font-size: 1.4rem;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .layout {
+            display: flex;
+            height: calc(100vh - 56px);
+        }
+
+        /* 左：フレンド関連 */
+        .sidebar {
+            width: 280px;
+            background: #ffe3f1;
+            border-right: 1px solid #f5c8dd;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sidebar h2 {
+            font-size: 1.05rem;
+            color: #ff7ab8;
+            margin-bottom: 4px;
+        }
+
+        .label {
+            font-size: 0.8rem;
+            color: #aa6a8f;
+            margin-bottom: 4px;
+        }
+
+        .search {
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid #ffb6d9;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+
+        .friend-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .friend {
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .friend:hover {
+            background: #ffe6f3;
+        }
+
+        .add-btn {
+            background: #ff9ecb;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        /* 右：チャット画面 */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            gap: 8px;
+        }
+
+        .chat-header {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .messages {
+            flex: 1;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 12px;
+            overflow-y: auto;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .message-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .message-row.me {
+            justify-content: flex-end;
+        }
+
+        .bubble {
+            max-width: 75%;
+            padding: 8px 12px;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .bubble.me {
+            background: #ff9ecb;
+            color: #fff;
+        }
+
+        .bubble.other {
+            background: #f3f3f3;
+            color: #444;
+        }
+
+        .bubble img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 4px;
+            display: block;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 8px;
+            padding: 10px 12px 14px;
+            background: #fff5fb;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            align-items: center;
+        }
+
+        .input-area input[type="text"] {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: 999px;
+            border: 1px solid #e3c7d7;
+            font-size: 0.9rem;
+        }
+
+        .input-area button,
+        .file-label {
+            border: none;
+            border-radius: 999px;
+            padding: 0 18px;
+            background: #ff7ab8;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .input-area button:disabled,
+        .file-label.disabled {
+            opacity: 0.5;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        /* ファイル選択のデザイン調整 */
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            padding: 0 12px;
+            background: #f0c3d9;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <button class="back" onclick="location.href='index.html'">←</button>
+        <div>
+            <h1>INEK Chat</h1>
+            <div class="sub" style="font-size:0.8rem;">つながる、関わる、続ける。</div>
+        </div>
+        <div id="userStatus" style="margin-left:auto; font-size:0.8rem;"></div>
+    </header>
+
+    <main class="layout">
+
+        <!-- 左：フレンド関連 -->
+        <aside class="sidebar">
+
+            <!-- フレンド申請 -->
+            <div>
+                <h2>ユーザー検索</h2>
+                <div class="label">IDで検索してフレンド追加</div>
+                <input id="requestSearch" class="search" placeholder="ユーザーID・名前で検索…">
+                <div id="requestResults" class="friend-list"></div>
+            </div>
+
+            <!-- フレンド検索 -->
+            <div style="margin-top:12px;">
+                <h2>フレンド一覧</h2>
+                <div class="label">チャットする相手を選ぶ</div>
+                <input id="friendSearch" class="search" placeholder="フレンドを絞り込み…">
+                <div id="friendList" class="friend-list"></div>
+            </div>
+
+        </aside>
+
+        <!-- 右：チャット画面 -->
+        <section class="chat-area">
+            <div id="chatWith" class="chat-header">相手を選択してください</div>
+            <div id="messages" class="messages"></div>
+
+            <div class="input-area">
+                <label for="imageUpload" id="imageUploadLabel" class="file-label disabled">📷</label>
+                <input type="file" id="imageUpload" accept="image/*" disabled>
+                <input type="text" id="messageInput" placeholder="メッセージを入力… (画像を送信する場合は先に選択)" disabled>
+                <button id="sendButton" disabled>送信</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Socket.IO クライアントの読み込み -->
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+        // --- 認証チェック ---
+        const userJson = sessionStorage.getItem('user');
+        if (!userJson) {
+            window.location.href = 'index.html';
+        }
+        const me = JSON.parse(userJson);
+        document.getElementById("userStatus").textContent = `${me.displayName} (${me.userId}) でログイン中`;
+
+        // --- Socket.IO 初期化 ---
+        const socket = io();
+        let currentRoomId = null;
+
+        // --- 左ペイン：ユーザー検索とフレンド機能 ---
+        const requestSearch = document.getElementById("requestSearch");
+        const requestResults = document.getElementById("requestResults");
+        const friendList = document.getElementById("friendList");
+        const friendSearch = document.getElementById("friendSearch");
+
+        // ユーザー検索 API を叩く
+        requestSearch.addEventListener("input", async (e) => {
+            const q = e.target.value.trim();
+            requestResults.innerHTML = "";
+            if (!q) return;
+
+            try {
+                const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&currentUserId=${encodeURIComponent(me.userId)}`);
+                const users = await res.json();
+
+                if (users.length === 0) {
+                    requestResults.innerHTML = '<div style="font-size:0.8rem; color:#777;">見つかりません。</div>';
+                    return;
+                }
+
+                users.forEach(u => {
+                    const div = document.createElement("div");
+                    div.className = "friend";
+
+                    const nameSpan = document.createElement("span");
+                    nameSpan.textContent = `${u.displayName} (${u.userId})`;
+
+                    const addBtn = document.createElement("button");
+                    addBtn.className = "add-btn";
+                    addBtn.textContent = "追加";
+                    addBtn.onclick = () => addFriend(u.userId);
+
+                    div.appendChild(nameSpan);
+                    div.appendChild(addBtn);
+                    requestResults.appendChild(div);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        async function addFriend(friendId) {
+            try {
+                const res = await fetch('/api/friends', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ currentUserId: me.userId, friendId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(`${friendId} とフレンドになりました！`);
+                    requestSearch.value = "";
+                    requestResults.innerHTML = "";
+                    loadFriendList(); // リスト更新
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // フレンドリストの読み込み
+        async function loadFriendList(filterText = "") {
+            try {
+                const res = await fetch(`/api/friends/${me.userId}`);
+                const friends = await res.json();
+                friendList.innerHTML = "";
+
+                if (friends.length === 0) {
+                    friendList.innerHTML = '<div style="font-size:0.8rem; color:#777;">フレンドがいません。</div>';
+                    return;
+                }
+
+                friends.forEach(f => {
+                    if (filterText && !f.userId.includes(filterText) && !f.displayName.includes(filterText)) return;
+
+                    const div = document.createElement("div");
+                    div.className = "friend";
+                    div.textContent = `${f.displayName} (${f.userId})`;
+                    div.onclick = () => openChatWith(f);
+                    friendList.appendChild(div);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        friendSearch.addEventListener("input", (e) => loadFriendList(e.target.value.trim()));
+
+        // 初回ロード時にフレンドリスト取得
+        loadFriendList();
+
+
+        // --- 右ペイン：チャット機能 ---
+        const chatWith = document.getElementById("chatWith");
+        const messagesBox = document.getElementById("messages");
+        const messageInput = document.getElementById("messageInput");
+        const sendButton = document.getElementById("sendButton");
+        const imageUpload = document.getElementById("imageUpload");
+        const imageUploadLabel = document.getElementById("imageUploadLabel");
+
+        function openChatWith(friend) {
+            currentRoomId = [me.userId, friend.userId].sort().join("_");
+
+            chatWith.textContent = `${friend.displayName} さんとのチャット`;
+            messagesBox.innerHTML = "";
+
+            // 入力要素を有効化
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            imageUpload.disabled = false;
+            imageUploadLabel.classList.remove("disabled");
+
+            // Roomに参加（履歴を受信）
+            socket.emit('join_room', currentRoomId);
+        }
+
+        // メッセージの受信処理
+        socket.on('chat_history', (messagesList) => {
+            messagesBox.innerHTML = ""; // クリア
+            // Timestamp順にソートして表示
+            messagesList.sort((a, b) => a.timestamp - b.timestamp).forEach(msg => {
+                appendMessage(msg.text, msg.sender === me.userId ? 'me' : 'other', msg.imageUrl);
+            });
+        });
+
+        socket.on('chat_message', (msg) => {
+            // 現在開いている部屋のメッセージなら表示
+            const expectedRoomId = [me.userId, msg.sender].sort().join("_");
+            // または自分が送信したメッセージ（＝送ったばかり）
+            if (expectedRoomId === currentRoomId || msg.sender === me.userId) {
+                appendMessage(msg.text, msg.sender === me.userId ? 'me' : 'other', msg.imageUrl);
+            }
+        });
+
+        function appendMessage(text, who, imageUrl) {
+            const row = document.createElement("div");
+            row.className = `message-row ${who}`;
+
+            const bubble = document.createElement("div");
+            bubble.className = `bubble ${who}`;
+
+            if (text) {
+                bubble.textContent = text;
+            }
+
+            if (imageUrl) {
+                const img = document.createElement("img");
+                img.src = imageUrl;
+                bubble.appendChild(img);
+            }
+
+            row.appendChild(bubble);
+            messagesBox.appendChild(row);
+            messagesBox.scrollTop = messagesBox.scrollHeight;
+        }
+
+        // 送信処理（画像対応）
+        sendButton.addEventListener('click', async () => {
+            const text = messageInput.value.trim();
+            const file = imageUpload.files[0];
+
+            if (!text && !file) return; // 空送信防止
+
+            sendButton.disabled = true; // 二重送信防止
+
+            let imageUrl = null;
+
+            // 画像があれば先にアップロード
+            if (file) {
+                const formData = new FormData();
+                formData.append('image', file);
+
+                try {
+                    const res = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        imageUrl = data.imageUrl;
+                    }
+                } catch (err) {
+                    console.error("Upload Error:", err);
+                    alert("画像のアップロードに失敗しました");
+                }
+            }
+
+            // メッセージ送信
+            socket.emit('chat_message', {
+                roomId: currentRoomId,
+                sender: me.userId,
+                text: text,
+                imageUrl: imageUrl
+            });
+
+            // 入力欄をクリア
+            messageInput.value = "";
+            imageUpload.value = "";
+            imageUploadLabel.style.background = "#f0c3d9"; // 色を戻す
+            sendButton.disabled = false;
+        });
+
+        // 画像が選択されたら背景色を変えてわかりやすくする
+        imageUpload.addEventListener("change", (e) => {
+            if (e.target.files.length > 0) {
+                imageUploadLabel.style.background = "#ff7ab8"; // 選択済みをアピール
+            } else {
+                imageUploadLabel.style.background = "#f0c3d9";
+            }
+        });
+
+        // Enterキーで送信
+        messageInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter" && !sendButton.disabled) {
+                sendButton.click();
+            }
+        });
+
+    </script>
+</body>
+
+</html>
